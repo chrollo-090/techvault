@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechVault Express — Ultra-Fast Cyber Tech Delivery</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tone.js for Web Audio SFX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            blue: '#00f0ff',
+                            purple: '#7000ff',
+                            pink: '#ff007f',
+                            dark: '#070913',
+                            card: 'rgba(15, 23, 42, 0.65)'
+                        }
+                    },
+                    animation: {
+                        'pulse-glow': 'pulseGlow 2s infinite alternate',
+                        'float': 'float 3s ease-in-out infinite',
+                        'scanline': 'scanline 8s linear infinite'
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%': { boxShadow: '0 0 15px rgba(0,240,255,0.2)' },
+                            '100%': { boxShadow: '0 0 35px rgba(0,240,255,0.6)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-8px)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Glassmorphism Styles */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+        }
+        .glass-input {
+            background: rgba(2, 6, 23, 0.7);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            color: #f8fafc;
+        }
+        .glass-input:focus {
+            border-color: #00f0ff;
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+            outline: none;
+        }
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #070913;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #7000ff;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00f0ff;
+        }
+        /* Animated Gradient Text */
+        .gradient-text {
+            background: linear-gradient(135deg, #00f0ff 0%, #ff007f 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-[#070913] text-slate-100 min-h-screen relative overflow-x-hidden font-sans selection:bg-cyan-500 selection:text-black">
+
+    <!-- Interactive Particle Background Canvas -->
+    <canvas id="bgCanvas" class="fixed inset-0 pointer-events-none z-0 opacity-40"></canvas>
+
+    <!-- Top Navigation -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-cyan-500/20 px-4 md:px-8 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="sfx('click')">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 animate-pulse-glow">
+                <i class="fa-solid fa-bolt-lightning text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl md:text-2xl font-extrabold tracking-wider gradient-text">TechVault <span class="text-xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 ml-1">EXPRESS</span></h1>
+                <p class="text-[10px] text-slate-400 tracking-widest uppercase">30-Min Instant Cyber Delivery</p>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="hidden md:flex flex-1 max-w-md mx-8 relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400"></i>
+            <input type="text" id="searchInput" placeholder="Search laptops, accessories, wearables..." class="w-full glass-input rounded-full pl-11 pr-4 py-2 text-sm transition-all duration-300">
+        </div>
+
+        <!-- Nav Controls -->
+        <div class="flex items-center space-x-4">
+            <button id="cartToggleBtn" onclick="toggleCart(); sfx('click');" class="relative group glass-panel px-4 py-2 rounded-xl flex items-center space-x-2 border-cyan-500/30 hover:border-cyan-400 transition-all duration-300">
+                <i class="fa-solid fa-cart-shopping text-cyan-400 group-hover:scale-110 transition-transform"></i>
+                <span class="font-bold text-sm">Cart</span>
+                <span id="cartCountBadge" class="bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-md shadow-pink-500/30">0</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Search Bar -->
+    <div class="md:hidden px-4 pt-4 relative z-10">
+        <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400"></i>
+            <input type="text" id="mobileSearchInput" placeholder="Search gear..." class="w-full glass-input rounded-xl pl-11 pr-4 py-2.5 text-sm">
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 md:px-8 py-8 relative z-10 grid grid-cols-1 lg:grid-cols-4 gap-8">
+
+        <!-- Sidebar Filters -->
+        <aside class="lg:col-span-1 space-y-6">
+            <div class="glass-panel p-6 rounded-2xl border-cyan-500/20">
+                <h3 class="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-xs"></i> Categories
+                </h3>
+                <div class="space-y-2" id="categoryList">
+                    <button class="cat-btn active w-full text-left px-4 py-2.5 rounded-xl font-medium text-sm transition-all flex justify-between items-center bg-cyan-500/20 text-cyan-300 border border-cyan-500/40" data-category="all">
+                        <span><i class="fa-solid fa-border-all mr-2"></i> All Gear</span>
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                    <button class="cat-btn w-full text-left px-4 py-2.5 rounded-xl font-medium text-sm transition-all flex justify-between items-center text-slate-300 hover:bg-slate-800/60 hover:text-cyan-300" data-category="electronics">
+                        <span><i class="fa-solid fa-laptop mr-2"></i> Laptops & Displays</span>
+                        <i class="fa-solid fa-chevron-right text-xs opacity-0 hover:opacity-100"></i>
+                    </button>
+                    <button class="cat-btn w-full text-left px-4 py-2.5 rounded-xl font-medium text-sm transition-all flex justify-between items-center text-slate-300 hover:bg-slate-800/60 hover:text-cyan-300" data-category="wearables">
+                        <span><i class="fa-solid fa-clock mr-2"></i> Cyber Wearables</span>
+                        <i class="fa-solid fa-chevron-right text-xs opacity-0 hover:opacity-100"></i>
+                    </button>
+                    <button class="cat-btn w-full text-left px-4 py-2.5 rounded-xl font-medium text-sm transition-all flex justify-between items-center text-slate-300 hover:bg-slate-800/60 hover:text-cyan-300" data-category="accessories">
+                        <span><i class="fa-solid fa-keyboard mr-2"></i> Accessories</span>
+                        <i class="fa-solid fa-chevron-right text-xs opacity-0 hover:opacity-100"></i>
+                    </button>
+                </div>
+
+                <hr class="my-6 border-slate-800">
+
+                <h3 class="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-down-short-wide text-xs"></i> Sort By Price
+                </h3>
+                <select id="sortSelect" class="w-full glass-input rounded-xl px-4 py-2.5 text-sm cursor-pointer">
+                    <option value="featured" class="bg-slate-900">Featured Releases</option>
+                    <option value="low-high" class="bg-slate-900">Price: Low to High</option>
+                    <option value="high-low" class="bg-slate-900">Price: High to Low</option>
+                </select>
+            </div>
+
+            <!-- Express Delivery Guarantee Banner -->
+            <div class="glass-panel p-5 rounded-2xl border-purple-500/30 bg-gradient-to-b from-purple-900/20 to-transparent relative overflow-hidden group">
+                <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all"></div>
+                <div class="flex items-center space-x-3 text-purple-400 font-bold mb-2">
+                    <i class="fa-solid fa-truck-fast text-2xl animate-bounce"></i>
+                    <span class="text-sm">Express Cyber Dispatch</span>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Guaranteed hyper-speed courier drop within 30 minutes in active tech zones. Real-time GPS telemetrics provided upon checkout.
+                </p>
+            </div>
+        </aside>
+
+        <!-- Product Display Area -->
+        <section class="lg:col-span-3">
+            <div class="flex items-center justify-between mb-6">
+                <h2 id="sectionTitle" class="text-2xl font-bold tracking-wide text-white flex items-center gap-2">
+                    <i class="fa-solid fa-microchip text-cyan-400"></i> All Products
+                </h2>
+                <span id="productCount" class="text-xs text-slate-400 bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700">6 Items Available</span>
+            </div>
+
+            <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamic product cards populated via script -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Slide-over Shopping Cart Drawer -->
+    <div id="cartModal" class="fixed inset-0 z-50 transition-opacity duration-300 opacity-0 pointer-events-none">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="toggleCart(); sfx('click');"></div>
+        <div class="absolute right-0 top-0 bottom-0 w-full max-w-md glass-panel border-l border-cyan-500/30 p-6 flex flex-col transform translate-x-full transition-transform duration-300 ease-out shadow-2xl" id="cartContainer">
+            
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-cart-arrow-down text-cyan-400"></i> Vault Cart
+                </h2>
+                <button onclick="toggleCart(); sfx('click');" class="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div id="cartItemsList" class="flex-1 overflow-y-auto py-4 space-y-4">
+                <!-- Cart items list rendered here -->
+            </div>
+
+            <div class="pt-4 border-t border-slate-800 space-y-4">
+                <div class="space-y-1.5 text-sm">
+                    <div class="flex justify-between text-slate-400">
+                        <span>Subtotal</span>
+                        <span id="cartSubtotal" class="font-mono text-white">$0.00</span>
+                    </div>
+                    <div class="flex justify-between text-slate-400">
+                        <span>Express Delivery Fee</span>
+                        <span id="cartDeliveryFee" class="font-mono text-cyan-400">$15.00</span>
+                    </div>
+                    <div class="flex justify-between text-lg font-bold text-white pt-2 border-t border-slate-800">
+                        <span>Total Cash Out</span>
+                        <span id="cartTotal" class="font-mono text-cyan-400">$0.00</span>
+                    </div>
+                </div>
+
+                <button id="proceedToCashoutBtn" onclick="openCashoutModal(); sfx('cashout');" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 text-white font-bold tracking-wide shadow-lg shadow-purple-500/30 hover:opacity-95 transition flex items-center justify-center space-x-2 group">
+                    <span>Cash Out & Pay</span>
+                    <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Multi-Method Cash Out / Checkout Modal -->
+    <div id="cashoutModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/85 backdrop-blur-lg" onclick="closeCashoutModal()"></div>
+        
+        <div class="relative glass-panel rounded-3xl p-6 md:p-8 w-full max-w-xl border-cyan-500/40 shadow-2xl z-10 max-h-[90vh] overflow-y-auto">
+            <button onclick="closeCashoutModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white text-xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 mx-auto flex items-center justify-center text-cyan-400 mb-3 text-xl">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-white">Express Cash Out</h3>
+                <p class="text-xs text-slate-400 mt-1">Select your preferred payment channel for dispatch</p>
+            </div>
+
+            <!-- Payment Channel Options -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <button type="button" onclick="selectPayment('cod')" id="pay-cod" class="pay-method-btn active p-3 rounded-xl border border-cyan-400 bg-cyan-500/20 text-center transition flex flex-col items-center gap-1.5">
+                    <i class="fa-solid fa-hand-holding-dollar text-cyan-400 text-lg"></i>
+                    <span class="text-xs font-bold text-white">Cash/COD</span>
+                </button>
+                <button type="button" onclick="selectPayment('upi')" id="pay-upi" class="pay-method-btn p-3 rounded-xl border border-slate-800 bg-slate-900/50 text-center hover:border-slate-700 transition flex flex-col items-center gap-1.5">
+                    <i class="fa-solid fa-qrcode text-purple-400 text-lg"></i>
+                    <span class="text-xs font-bold text-slate-300">UPI / QR</span>
+                </button>
+                <button type="button" onclick="selectPayment('card')" id="pay-card" class="pay-method-btn p-3 rounded-xl border border-slate-800 bg-slate-900/50 text-center hover:border-slate-700 transition flex flex-col items-center gap-1.5">
+                    <i class="fa-solid fa-credit-card text-pink-400 text-lg"></i>
+                    <span class="text-xs font-bold text-slate-300">Card</span>
+                </button>
+                <button type="button" onclick="selectPayment('crypto')" id="pay-crypto" class="pay-method-btn p-3 rounded-xl border border-slate-800 bg-slate-900/50 text-center hover:border-slate-700 transition flex flex-col items-center gap-1.5">
+                    <i class="fa-brands fa-bitcoin text-amber-400 text-lg"></i>
+                    <span class="text-xs font-bold text-slate-300">Crypto</span>
+                </button>
+            </div>
+
+            <!-- Dynamic Form Details -->
+            <form id="cashoutForm" onsubmit="handlePlaceOrder(event)" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
+                        <input type="text" required placeholder="John Doe" class="w-full glass-input rounded-xl px-4 py-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Mobile / WhatsApp</label>
+                        <input type="tel" required placeholder="+1 555-0199" class="w-full glass-input rounded-xl px-4 py-2.5 text-sm">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Delivery Address (30-min Target Zone)</label>
+                    <input type="text" required placeholder="Sector 14, TechHub Avenue, Apt 4B" class="w-full glass-input rounded-xl px-4 py-2.5 text-sm">
+                </div>
+
+                <!-- Payment Dynamic Container -->
+                <div id="paymentChannelDetails" class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-xs space-y-2">
+                    <div class="flex items-center space-x-2 text-cyan-400 font-semibold">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>Cash on Delivery Selected</span>
+                    </div>
+                    <p class="text-slate-400">Pay cash or scan the courier's POS device upon physical arrival of your order.</p>
+                </div>
+
+                <div class="pt-2 flex items-center justify-between text-sm font-bold border-t border-slate-800">
+                    <span class="text-slate-400">Final Order Charge:</span>
+                    <span id="cashoutTotalAmount" class="text-cyan-400 text-xl font-mono">$0.00</span>
+                </div>
+
+                <button type="submit" class="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold tracking-wider hover:opacity-95 transition shadow-lg shadow-cyan-500/20 flex items-center justify-center space-x-2 text-base">
+                    <i class="fa-solid fa-rocket"></i>
+                    <span>Confirm Order & Track Dispatch</span>
+                </button>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- Live Animated Delivery Tracker Modal -->
+    <div id="trackerModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-xl"></div>
+
+        <div class="relative glass-panel rounded-3xl p-6 md:p-8 w-full max-w-2xl border-cyan-500/40 shadow-2xl z-10 text-center space-y-6">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                <div class="text-left">
+                    <span class="text-[10px] uppercase font-mono tracking-widest text-cyan-400">Live Telemetric Teleport</span>
+                    <h3 class="text-xl font-bold text-white">Dispatch Order #TVX-<span id="trackerOrderId">9402</span></h3>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 animate-pulse">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Live Tracking
+                </span>
+            </div>
+
+            <!-- Dynamic Steps Progress Bar -->
+            <div class="relative py-6">
+                <!-- Connecting Line -->
+                <div class="absolute top-1/2 left-8 right-8 -translate-y-1/2 h-1 bg-slate-800 rounded z-0"></div>
+                <div id="trackerProgressBar" class="absolute top-1/2 left-8 -translate-y-1/2 h-1 bg-gradient-to-r from-cyan-400 to-purple-600 rounded transition-all duration-700 z-0" style="width: 0%;"></div>
+
+                <div class="grid grid-cols-4 relative z-10 text-xs">
+                    <!-- Step 1 -->
+                    <div id="step-1" class="flex flex-col items-center space-y-2">
+                        <div class="step-circle w-10 h-10 rounded-full bg-cyan-500 text-slate-900 font-bold flex items-center justify-center transition-all duration-300 ring-4 ring-cyan-500/30">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <span class="font-bold text-cyan-400">Order Placed</span>
+                    </div>
+                    <!-- Step 2 -->
+                    <div id="step-2" class="flex flex-col items-center space-y-2">
+                        <div class="step-circle w-10 h-10 rounded-full bg-slate-800 text-slate-400 font-bold flex items-center justify-center transition-all duration-300">
+                            <i class="fa-solid fa-box-open"></i>
+                        </div>
+                        <span class="text-slate-400 font-medium">Packed</span>
+                    </div>
+                    <!-- Step 3 -->
+                    <div id="step-3" class="flex flex-col items-center space-y-2">
+                        <div class="step-circle w-10 h-10 rounded-full bg-slate-800 text-slate-400 font-bold flex items-center justify-center transition-all duration-300">
+                            <i class="fa-solid fa-motorcycle"></i>
+                        </div>
+                        <span class="text-slate-400 font-medium">On the Way</span>
+                    </div>
+                    <!-- Step 4 -->
+                    <div id="step-4" class="flex flex-col items-center space-y-2">
+                        <div class="step-circle w-10 h-10 rounded-full bg-slate-800 text-slate-400 font-bold flex items-center justify-center transition-all duration-300">
+                            <i class="fa-solid fa-house-chimney text-xs"></i>
+                        </div>
+                        <span class="text-slate-400 font-medium">Delivered</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Live Courier Status -->
+            <div class="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-cyan-500 to-purple-600 p-0.5">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&q=80" alt="Courier Driver" class="w-full h-full object-cover rounded-full">
+                    </div>
+                    <div class="text-left">
+                        <h4 class="font-bold text-white text-sm">Alex Cyber-Courier</h4>
+                        <p class="text-xs text-slate-400">Cyber Bike #X-99 • Speed 42 km/h</p>
+                        <p id="trackerStatusText" class="text-xs text-cyan-400 mt-1 font-semibold">Preparing order package in hub...</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] text-slate-400 block uppercase">Estimated Arrival</span>
+                    <span id="trackerETA" class="text-2xl font-extrabold text-cyan-400 font-mono">28 Mins</span>
+                </div>
+            </div>
+
+            <button onclick="closeTrackerModal()" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition">
+                Return to Store
+            </button>
+        </div>
+    </div>
+
+    <!-- Application Logic Script -->
+    <script>
+        // ==========================================
+        // 1. DATASET
+        // ==========================================
+        const products = [
+            {
+                id: 1,
+                title: "Acer Nitro 5 Gaming Laptop",
+                category: "electronics",
+                price: 799.99,
+                badge: "Popular",
+                image: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=600&q=80"
+            },
+            {
+                id: 2,
+                title: "HP Victus Cyber Edition",
+                category: "electronics",
+                price: 849.50,
+                badge: "Hot Express",
+                image: "https://cdn.phototourl.com/member/2026-10-21-7e86608e-6ce5-46ef-9414-b89a8ceb7f10.webp"
+            },
+            {
+                id: 3,
+                title: "CyberPulse Smartwatch Ultra",
+                category: "wearables",
+                price: 189.99,
+                badge: "30-Min Drop",
+                image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80"
+            },
+            {
+                id: 4,
+                title: "Ergonomic RGB Mechanical Keyboard",
+                category: "accessories",
+                price: 99.99,
+                badge: "New",
+                image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500&q=80"
+            },
+            {
+                id: 5,
+                title: "Ultra-Wide Gaming OLED Display",
+                category: "electronics",
+                price: 599.00,
+                badge: "Premium",
+                image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&q=80"
+            },
+            {
+                id: 6,
+                title: "Precision Ergonomic Wireless Mouse",
+                category: "accessories",
+                price: 54.99,
+                badge: "Best Seller",
+                image: "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=500&q=80"
+            }
+        ];
+
+        let cart = JSON.parse(localStorage.getItem('techVaultCart')) || [];
+        let currentCategory = "all";
+        let currentPaymentMethod = "cod";
+        const deliveryFee = 15.00;
+
+        // Sound Effects Engine via Tone.js
+        function sfx(type) {
+            try {
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+                const synth = new Tone.Synth().toDestination();
+                if (type === 'add') {
+                    synth.triggerAttackRelease("C5", "8n");
+                } else if (type === 'click') {
+                    synth.triggerAttackRelease("G4", "16n");
+                } else if (type === 'cashout') {
+                    const poly = new Tone.PolySynth().toDestination();
+                    poly.triggerAttackRelease(["C4", "E4", "G4", "B4"], "8n");
+                } else if (type === 'success') {
+                    const poly = new Tone.PolySynth().toDestination();
+                    poly.triggerAttackRelease(["E5", "G#5", "B5", "E6"], "4n");
+                }
+            } catch(e) {
+                // Audio fallback silence
+            }
+        }
+
+        // ==========================================
+        // 2. DOM INITIALIZATION & RENDERING
+        // ==========================================
+        const productGrid = document.getElementById("productGrid");
+        const searchInput = document.getElementById("searchInput");
+        const mobileSearchInput = document.getElementById("mobileSearchInput");
+        const sortSelect = document.getElementById("sortSelect");
+
+        function renderProducts() {
+            const query = (searchInput.value || mobileSearchInput.value || "").toLowerCase();
+
+            let filtered = products.filter(p => {
+                const matchCategory = currentCategory === "all" || p.category === currentCategory;
+                const matchSearch = p.title.toLowerCase().includes(query);
+                return matchCategory && matchSearch;
+            });
+
+            if (sortSelect.value === "low-high") {
+                filtered.sort((a, b) => a.price - b.price);
+            } else if (sortSelect.value === "high-low") {
+                filtered.sort((a, b) => b.price - a.price);
+            }
+
+            productGrid.innerHTML = "";
+            document.getElementById("productCount").textContent = `${filtered.length} Items Available`;
+
+            filtered.forEach(product => {
+                const card = document.createElement("div");
+                card.className = "product-card glass-panel rounded-2xl overflow-hidden hover:border-cyan-400 transition-all duration-300 flex flex-col group";
+                
+                card.innerHTML = `
+                    <div class="relative h-48 overflow-hidden bg-slate-900">
+                        <img src="${product.image}" alt="${product.title}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onerror="this.src='https://images.unsplash.com/photo-1518173946687-a4c8a383392e?w=500&q=80'">
+                        <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-cyan-500/80 text-black backdrop-blur-md shadow-md">
+                            ${product.badge}
+                        </span>
+                    </div>
+                    <div class="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                            <h4 class="font-bold text-white text-base mb-1 group-hover:text-cyan-300 transition-colors">${product.title}</h4>
+                            <p class="text-xs text-slate-400 capitalize mb-3"><i class="fa-solid fa-tag text-[10px] text-cyan-400 mr-1"></i>${product.category}</p>
+                        </div>
+                        <div class="flex items-center justify-between pt-3 border-t border-slate-800/80">
+                            <span class="text-xl font-bold font-mono text-cyan-400">$${product.price.toFixed(2)}</span>
+                            <button onclick="addToCart(${product.id}); sfx('add');" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 hover:opacity-90 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-md shadow-cyan-500/20 active:scale-95">
+                                <i class="fa-solid fa-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                `;
+                productGrid.appendChild(card);
+            });
+        }
+
+        // ==========================================
+        // 3. CART MANAGEMENT
+        // ==========================================
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            const existing = cart.find(item => item.id === productId);
+
+            if (existing) {
+                existing.quantity += 1;
+            } else {
+                cart.push({ ...product, quantity: 1 });
+            }
+
+            saveCart();
+            updateCartUI();
+        }
+
+        function updateQuantity(productId, delta) {
+            const index = cart.findIndex(item => item.id === productId);
+            if (index > -1) {
+                cart[index].quantity += delta;
+                if (cart[index].quantity <= 0) {
+                    cart.splice(index, 1);
+                }
+            }
+            saveCart();
+            updateCartUI();
+        }
+
+        function saveCart() {
+            localStorage.setItem('techVaultCart', JSON.stringify(cart));
+        }
+
+        function updateCartUI() {
+            const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const total = subtotal > 0 ? subtotal + deliveryFee : 0;
+
+            document.getElementById("cartCountBadge").textContent = totalCount;
+            document.getElementById("cartSubtotal").textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById("cartTotal").textContent = `$${total.toFixed(2)}`;
+            document.getElementById("cashoutTotalAmount").textContent = `$${total.toFixed(2)}`;
+
+            const cartItemsList = document.getElementById("cartItemsList");
+
+            if (cart.length === 0) {
+                cartItemsList.innerHTML = `
+                    <div class="text-center py-12 text-slate-500 space-y-3">
+                        <i class="fa-solid fa-basket-shopping text-4xl text-slate-700"></i>
+                        <p class="text-sm">Your vault cart is completely empty.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            cartItemsList.innerHTML = "";
+            cart.forEach(item => {
+                const div = document.createElement("div");
+                div.className = "p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between gap-3";
+                div.innerHTML = `
+                    <img src="${item.image}" class="w-12 h-12 rounded-lg object-cover bg-slate-800" onerror="this.src='https://images.unsplash.com/photo-1518173946687-a4c8a383392e?w=500&q=80'">
+                    <div class="flex-1 min-w-0">
+                        <h5 class="text-xs font-bold text-white truncate">${item.title}</h5>
+                        <span class="text-xs text-cyan-400 font-mono font-bold">$${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                    <div class="flex items-center space-x-2 bg-slate-800 px-2 py-1 rounded-lg">
+                        <button onclick="updateQuantity(${item.id}, -1)" class="text-slate-400 hover:text-white text-xs font-bold px-1">-</button>
+                        <span class="text-xs font-bold text-white">${item.quantity}</span>
+                        <button onclick="updateQuantity(${item.id}, 1)" class="text-slate-400 hover:text-white text-xs font-bold px-1">+</button>
+                    </div>
+                `;
+                cartItemsList.appendChild(div);
+            });
+        }
+
+        function toggleCart() {
+            const modal = document.getElementById("cartModal");
+            const container = document.getElementById("cartContainer");
+            
+            if (modal.classList.contains("opacity-0")) {
+                modal.classList.remove("opacity-0", "pointer-events-none");
+                container.classList.remove("translate-x-full");
+            } else {
+                modal.classList.add("opacity-0", "pointer-events-none");
+                container.classList.add("translate-x-full");
+            }
+        }
+
+        // ==========================================
+        // 4. PAYMENTS & CASHOUT DRAWER
+        // ==========================================
+        function openCashoutModal() {
+            if (cart.length === 0) {
+                alert("Please add items to your cart before proceeding to cash out!");
+                return;
+            }
+            toggleCart();
+            document.getElementById("cashoutModal").classList.remove("hidden");
+        }
+
+        function closeCashoutModal() {
+            document.getElementById("cashoutModal").classList.add("hidden");
+        }
+
+        function selectPayment(method) {
+            currentPaymentMethod = method;
+            document.querySelectorAll(".pay-method-btn").forEach(btn => {
+                btn.classList.remove("border-cyan-400", "bg-cyan-500/20");
+                btn.classList.add("border-slate-800", "bg-slate-900/50");
+            });
+
+            const activeBtn = document.getElementById(`pay-${method}`);
+            if (activeBtn) {
+                activeBtn.classList.remove("border-slate-800", "bg-slate-900/50");
+                activeBtn.classList.add("border-cyan-400", "bg-cyan-500/20");
+            }
+
+            const details = document.getElementById("paymentChannelDetails");
+            if (method === 'cod') {
+                details.innerHTML = `
+                    <div class="flex items-center space-x-2 text-cyan-400 font-semibold">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                        <span>Cash on Delivery Selected</span>
+                    </div>
+                    <p class="text-slate-400">Pay cash or scan the courier's POS device upon physical arrival of your order.</p>
+                `;
+            } else if (method === 'upi') {
+                details.innerHTML = `
+                    <div class="flex items-center space-x-2 text-purple-400 font-semibold">
+                        <i class="fa-solid fa-qrcode"></i>
+                        <span>UPI / QR Instant Transfer</span>
+                    </div>
+                    <p class="text-slate-400">A dynamic QR code will be presented on screen upon order confirmation.</p>
+                `;
+            } else if (method === 'card') {
+                details.innerHTML = `
+                    <div class="flex items-center space-x-2 text-pink-400 font-semibold">
+                        <i class="fa-solid fa-credit-card"></i>
+                        <span>Encrypted Card Gateway</span>
+                    </div>
+                    <p class="text-slate-400">Supports Visa, MasterCard, and Amex with instant 256-bit tokenization.</p>
+                `;
+            } else if (method === 'crypto') {
+                details.innerHTML = `
+                    <div class="flex items-center space-x-2 text-amber-400 font-semibold">
+                        <i class="fa-brands fa-bitcoin"></i>
+                        <span>Web3 Crypto Checkout</span>
+                    </div>
+                    <p class="text-slate-400">Supports USDT, BTC, and ETH. Telemetry locks exchange rate for 15 minutes.</p>
+                `;
+            }
+            sfx('click');
+        }
+
+        // ==========================================
+        // 5. LIVE ANIMATED TRACKER ENGINE
+        // ==========================================
+        function handlePlaceOrder(e) {
+            e.preventDefault();
+            closeCashoutModal();
+            cart = [];
+            saveCart();
+            updateCartUI();
+
+            sfx('success');
+            document.getElementById("trackerModal").classList.remove("hidden");
+            document.getElementById("trackerOrderId").textContent = Math.floor(1000 + Math.random() * 9000);
+            
+            startDeliverySimulation();
+        }
+
+        function startDeliverySimulation() {
+            const progressBar = document.getElementById("trackerProgressBar");
+            const statusText = document.getElementById("trackerStatusText");
+            const etaText = document.getElementById("trackerETA");
+
+            const stages = [
+                { progress: "0%", status: "Order verified & packing in central hub...", eta: "28 Mins", step: 1 },
+                { progress: "33%", status: "Package picked up by Alex (Cyber Bike #X-99)", eta: "20 Mins", step: 2 },
+                { progress: "66%", status: "Courier en route! Speed 48 km/h on TechHub Expressway", eta: "08 Mins", step: 3 },
+                { progress: "100%", status: "Courier arrived at destination! Drop complete.", eta: "Delivered", step: 4 }
+            ];
+
+            stages.forEach((stage, index) => {
+                setTimeout(() => {
+                    progressBar.style.width = stage.progress;
+                    statusText.textContent = stage.status;
+                    etaText.textContent = stage.eta;
+
+                    // Update step circles styling
+                    for (let i = 1; i <= 4; i++) {
+                        const circle = document.querySelector(`#step-${i} .step-circle`);
+                        if (i <= stage.step) {
+                            circle.className = "step-circle w-10 h-10 rounded-full bg-cyan-500 text-slate-900 font-bold flex items-center justify-center transition-all duration-300 ring-4 ring-cyan-500/30";
+                        } else {
+                            circle.className = "step-circle w-10 h-10 rounded-full bg-slate-800 text-slate-400 font-bold flex items-center justify-center transition-all duration-300";
+                        }
+                    }
+                    sfx('click');
+                }, index * 3500);
+            });
+        }
+
+        function closeTrackerModal() {
+            document.getElementById("trackerModal").classList.add("hidden");
+        }
+
+        // ==========================================
+        // 6. EVENT LISTENERS & PARTICLE BACKGROUND
+        // ==========================================
+        document.querySelectorAll(".cat-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".cat-btn").forEach(b => {
+                    b.classList.remove("bg-cyan-500/20", "text-cyan-300", "border", "border-cyan-500/40");
+                    b.classList.add("text-slate-300");
+                });
+                btn.classList.add("bg-cyan-500/20", "text-cyan-300", "border", "border-cyan-500/40");
+                currentCategory = btn.dataset.category;
+                renderProducts();
+                sfx('click');
+            });
+        });
+
+        searchInput.addEventListener("input", renderProducts);
+        mobileSearchInput.addEventListener("input", renderProducts);
+        sortSelect.addEventListener("change", renderProducts);
+
+        // Canvas Cyber Particles Animation
+        const canvas = document.getElementById("bgCanvas");
+        const ctx = canvas.getContext("2d");
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.color = Math.random() > 0.5 ? '#00f0ff' : '#7000ff';
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 60; i++) {
+            particles.push(new Particle());
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        // Initial Boot
+        renderProducts();
+        updateCartUI();
+    </script>
+</body>
+</html>
